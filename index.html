@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusFlow — Daily Focus & Habit Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+            mono: ['JetBrains Mono', 'ui-monospace'],
+          },
+          animation: {
+            'bounce-in': 'bounceIn 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97)',
+            'fade-up': 'fadeUp 0.5s ease-out',
+            'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+            'wiggle': 'wiggle 0.5s ease-in-out',
+            'spin-once': 'spinOnce 0.6s ease-out',
+            'strike': 'strike 0.4s ease-out forwards',
+          },
+          keyframes: {
+            bounceIn: {
+              '0%': { transform: 'scale(0.9)', opacity: '0' },
+              '60%': { transform: 'scale(1.05)', opacity: '1' },
+              '100%': { transform: 'scale(1)' },
+            },
+            fadeUp: {
+              '0%': { opacity: '0', transform: 'translateY(12px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            pulseSoft: {
+              '0%, 100%': { opacity: '1' },
+              '50%': { opacity: '0.6' },
+            },
+            wiggle: {
+              '0%, 100%': { transform: 'rotate(-3deg) scale(1.1)' },
+              '50%': { transform: 'rotate(3deg) scale(1.15)' },
+            },
+            spinOnce: {
+              '0%': { transform: 'rotate(0deg) scale(1)' },
+              '50%': { transform: 'rotate(180deg) scale(1.2)' },
+              '100%': { transform: 'rotate(360deg) scale(1)' },
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Themes ── */
+    :root {
+      --bg: #fdf6ee;
+      --surface: #fff9f2;
+      --border: #e8d8c4;
+      --text: #3d2c1e;
+      --muted: #9a7b60;
+      --accent: #c07850;
+      --accent-light: #f0d8c0;
+      --progress: #c07850;
+      --btn-primary: #c07850;
+      --btn-primary-hover: #a8623c;
+      --btn-secondary: #e8d8c4;
+      --btn-secondary-hover: #d6c4b0;
+    }
+    .theme-ocean {
+      --bg: #eef4fb;
+      --surface: #f4f9ff;
+      --border: #bfd5ee;
+      --text: #1a3252;
+      --muted: #5882a8;
+      --accent: #2e6da4;
+      --accent-light: #c8ddf4;
+      --progress: #2e6da4;
+      --btn-primary: #2e6da4;
+      --btn-primary-hover: #1d5487;
+      --btn-secondary: #bfd5ee;
+      --btn-secondary-hover: #a8c4e0;
+    }
+    .theme-dark {
+      --bg: #121418;
+      --surface: #1e2128;
+      --border: #2e3340;
+      --text: #e4e8f0;
+      --muted: #7a8499;
+      --accent: #7c6af0;
+      --accent-light: #2a2640;
+      --progress: #7c6af0;
+      --btn-primary: #7c6af0;
+      --btn-primary-hover: #6455d4;
+      --btn-secondary: #2e3340;
+      --btn-secondary-hover: #3a4050;
+    }
+
+    * { transition: background-color 0.4s ease, color 0.3s ease, border-color 0.3s ease; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .surface { background-color: var(--surface); border: 1px solid var(--border); }
+    .muted    { color: var(--muted); }
+    .accent   { color: var(--accent); }
+
+    /* Buttons */
+    .btn-primary {
+      background-color: var(--btn-primary);
+      color: white;
+      transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    }
+    .btn-primary:hover  { background-color: var(--btn-primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .btn-primary:active { transform: translateY(1px); box-shadow: none; }
+
+    .btn-secondary {
+      background-color: var(--btn-secondary);
+      color: var(--text);
+      transition: background-color 0.2s, transform 0.1s;
+    }
+    .btn-secondary:hover  { background-color: var(--btn-secondary-hover); transform: translateY(-1px); }
+    .btn-secondary:active { transform: translateY(1px); }
+
+    /* Progress bar */
+    .progress-track { background-color: var(--border); }
+    .progress-fill  {
+      background-color: var(--progress);
+      transition: width 1s linear;
+    }
+
+    /* Habit icon */
+    .habit-icon-wrapper {
+      background-color: var(--accent-light);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    .habit-icon-wrapper:hover { transform: scale(1.06); }
+
+    /* Quote fade */
+    .quote-text { transition: opacity 0.35s ease; }
+
+    /* Streak badge */
+    .streak-badge {
+      background-color: var(--accent);
+      color: white;
+    }
+
+    /* Input */
+    .goal-input {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .goal-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+    .goal-input::placeholder { color: var(--muted); }
+
+    /* Checkbox */
+    .goal-checkbox { accent-color: var(--accent); }
+
+    /* Strikethrough animation */
+    .goal-done span { text-decoration: line-through; color: var(--muted); transition: all 0.3s ease; }
+
+    /* Sparkle */
+    .sparkle {
+      position: fixed;
+      pointer-events: none;
+      font-size: 1.2rem;
+      animation: float-up 0.9s ease-out forwards;
+    }
+    @keyframes float-up {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-80px) scale(0.5) rotate(20deg); }
+    }
+
+    /* Timer pulsing when running */
+    .timer-running .timer-display { animation: pulseSoft 2s ease-in-out infinite; }
+
+    /* Theme switcher pill */
+    .theme-pill {
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      background: var(--surface);
+      transition: all 0.2s;
+    }
+    .theme-pill:hover, .theme-pill.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background-color: var(--accent-light);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @keyframes pulseSoft {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.65; }
+    }
+  </style>
+</head>
+<body id="app" class="px-4 py-8 md:py-12">
+
+  <!-- ╔══════════════════════════════╗ -->
+  <!-- ║           HEADER             ║ -->
+  <!-- ╚══════════════════════════════╝ -->
+  <header class="max-w-2xl mx-auto mb-10 text-center animate-fade-up">
+    <p id="greeting" class="text-sm font-medium tracking-widest uppercase muted mb-1"></p>
+    <h1 class="text-4xl font-bold tracking-tight mb-1" style="color:var(--text)">
+      Focus<span style="color:var(--accent)">Flow</span>
+    </h1>
+    <p class="text-sm muted mb-6">Your daily space for focus &amp; intention.</p>
+
+    <!-- Theme switcher -->
+    <div class="flex justify-center gap-2">
+      <button onclick="setTheme('warm')"  class="theme-pill active px-3 py-1 rounded-full text-xs font-medium" id="pill-warm">☕ Cozy Warm</button>
+      <button onclick="setTheme('ocean')" class="theme-pill px-3 py-1 rounded-full text-xs font-medium" id="pill-ocean">🌊 Ocean Blue</button>
+      <button onclick="setTheme('dark')"  class="theme-pill px-3 py-1 rounded-full text-xs font-medium" id="pill-dark">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto space-y-6">
+
+    <!-- ╔══════════════════════════════╗ -->
+    <!-- ║        FOCUS TIMER           ║ -->
+    <!-- ╚══════════════════════════════╝ -->
+    <section class="surface rounded-3xl p-6 md:p-8 animate-fade-up" style="animation-delay:0.1s">
+      <div class="flex items-center gap-2 mb-5">
+        <span class="text-xl">🍅</span>
+        <h2 class="font-semibold text-base tracking-wide">Focus Timer</h2>
+        <span class="ml-auto text-xs muted font-mono" id="session-label">Session 1</span>
+      </div>
+
+      <!-- Timer display -->
+      <div id="timer-wrapper" class="flex justify-center mb-5">
+        <span id="timer-display" class="font-mono text-7xl font-semibold tracking-tight timer-display" style="color:var(--accent)">25:00</span>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-track rounded-full h-2 mb-6 overflow-hidden">
+        <div id="progress-fill" class="progress-fill h-2 rounded-full" style="width:100%"></div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex justify-center gap-3">
+        <button id="btn-start" onclick="startTimer()" class="btn-primary px-6 py-2.5 rounded-2xl text-sm font-semibold">▶ Start</button>
+        <button id="btn-pause" onclick="pauseTimer()" class="btn-secondary px-6 py-2.5 rounded-2xl text-sm font-semibold hidden">⏸ Pause</button>
+        <button id="btn-reset" onclick="resetTimer()" class="btn-secondary px-6 py-2.5 rounded-2xl text-sm font-semibold">↺ Reset</button>
+      </div>
+    </section>
+
+    <!-- ╔══════════════════════════════╗ -->
+    <!-- ║      HABIT / MOOD CLICKER    ║ -->
+    <!-- ╚══════════════════════════════╝ -->
+    <section class="surface rounded-3xl p-6 md:p-8 text-center animate-fade-up" style="animation-delay:0.2s">
+      <div class="flex items-center gap-2 mb-5">
+        <span class="text-xl">✨</span>
+        <h2 class="font-semibold text-base tracking-wide">Habit Spark</h2>
+      </div>
+
+      <!-- Clickable icon -->
+      <button id="habit-btn" onclick="handleHabitClick(event)" class="habit-icon-wrapper w-28 h-28 rounded-full mx-auto flex items-center justify-center text-5xl mb-4 cursor-pointer focus:outline-none select-none">
+        🌱
+      </button>
+
+      <!-- Counters -->
+      <div class="flex justify-center gap-4 mb-4">
+        <div class="text-center">
+          <p class="text-2xl font-bold" style="color:var(--accent)" id="click-count">0</p>
+          <p class="text-xs muted">taps today</p>
+        </div>
+        <div class="w-px" style="background:var(--border)"></div>
+        <div class="text-center">
+          <p class="text-2xl font-bold" style="color:var(--accent)" id="streak-count">0</p>
+          <p class="text-xs muted">day streak 🔥</p>
+        </div>
+      </div>
+
+      <!-- Motivational quote -->
+      <p id="quote-text" class="quote-text text-sm muted italic max-w-xs mx-auto leading-relaxed">"Every small step counts."</p>
+    </section>
+
+    <!-- ╔══════════════════════════════╗ -->
+    <!-- ║      DAILY GOALS             ║ -->
+    <!-- ╚══════════════════════════════╝ -->
+    <section class="surface rounded-3xl p-6 md:p-8 animate-fade-up" style="animation-delay:0.3s">
+      <div class="flex items-center gap-2 mb-5">
+        <span class="text-xl">🎯</span>
+        <h2 class="font-semibold text-base tracking-wide">Today's Priorities</h2>
+        <span class="ml-auto text-xs muted" id="goal-count-label">0 / 3</span>
+      </div>
+
+      <!-- Input -->
+      <div class="flex gap-2 mb-4">
+        <input
+          id="goal-input"
+          type="text"
+          placeholder="Add a priority for today…"
+          maxlength="60"
+          class="goal-input flex-1 px-4 py-2.5 rounded-2xl text-sm"
+          onkeydown="if(event.key==='Enter') addGoal()"
+        />
+        <button onclick="addGoal()" class="btn-primary px-4 py-2.5 rounded-2xl text-sm font-semibold">+ Add</button>
+      </div>
+
+      <!-- Goal list -->
+      <ul id="goal-list" class="space-y-2"></ul>
+
+      <!-- Empty state -->
+      <div id="goal-empty" class="text-center py-4">
+        <p class="text-sm muted">No priorities yet — add up to 3 for today.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center mt-10 text-xs muted">
+    Built with intention · <span id="footer-date"></span>
+  </footer>
+
+  <!-- ═══════════════════════════════ -->
+  <!--           JAVASCRIPT           -->
+  <!-- ═══════════════════════════════ -->
+  <script>
+    /* ─────────────────────────── GREETING ─────────────────────────── */
+    const greetings = {
+      morning:   '☀️  Good morning',
+      afternoon: '🌤  Good afternoon',
+      evening:   '🌆  Good evening',
+      night:     '🌙  Good night',
+    };
+
+    function updateGreeting() {
+      const h = new Date().getHours();
+      const key = h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night';
+      document.getElementById('greeting').textContent = greetings[key];
+    }
+    updateGreeting();
+
+    document.getElementById('footer-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    /* ─────────────────────────── THEMES ─────────────────────────── */
+    const themeMap = { warm: '', ocean: 'theme-ocean', dark: 'theme-dark' };
+    let currentTheme = 'warm';
+
+    function setTheme(name) {
+      const app = document.getElementById('app');
+      app.className = 'px-4 py-8 md:py-12 ' + (themeMap[name] || '');
+      currentTheme = name;
+      ['warm','ocean','dark'].forEach(t => {
+        document.getElementById('pill-' + t).classList.toggle('active', t === name);
+      });
+      localStorage.setItem('ff-theme', name);
+    }
+
+    // Restore theme
+    const savedTheme = localStorage.getItem('ff-theme');
+    if (savedTheme) setTheme(savedTheme);
+
+    /* ─────────────────────────── TIMER ─────────────────────────── */
+    const TOTAL_SECONDS = 25 * 60;
+    let secondsLeft  = TOTAL_SECONDS;
+    let timerRunning = false;
+    let timerInterval = null;
+    let sessionCount  = 1;
+
+    function formatTime(s) {
+      const m = Math.floor(s / 60).toString().padStart(2, '0');
+      const sec = (s % 60).toString().padStart(2, '0');
+      return `${m}:${sec}`;
+    }
+
+    function updateTimerUI() {
+      document.getElementById('timer-display').textContent = formatTime(secondsLeft);
+      const pct = (secondsLeft / TOTAL_SECONDS) * 100;
+      document.getElementById('progress-fill').style.width = pct + '%';
+    }
+
+    function startTimer() {
+      if (timerRunning) return;
+      timerRunning = true;
+      document.getElementById('btn-start').classList.add('hidden');
+      document.getElementById('btn-pause').classList.remove('hidden');
+      document.getElementById('timer-wrapper').classList.add('timer-running');
+
+      timerInterval = setInterval(() => {
+        if (secondsLeft <= 0) {
+          clearInterval(timerInterval);
+          timerRunning = false;
+          secondsLeft = 0;
+          updateTimerUI();
+          document.getElementById('timer-wrapper').classList.remove('timer-running');
+          document.getElementById('btn-start').classList.remove('hidden');
+          document.getElementById('btn-pause').classList.add('hidden');
+          sessionCount++;
+          document.getElementById('session-label').textContent = 'Session ' + sessionCount;
+          showToast('🎉 Focus session complete! Take a break.');
+          return;
+        }
+        secondsLeft--;
+        updateTimerUI();
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      if (!timerRunning) return;
+      clearInterval(timerInterval);
+      timerRunning = false;
+      document.getElementById('btn-pause').classList.add('hidden');
+      document.getElementById('btn-start').classList.remove('hidden');
+      document.getElementById('btn-start').textContent = '▶ Resume';
+      document.getElementById('timer-wrapper').classList.remove('timer-running');
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      secondsLeft = TOTAL_SECONDS;
+      updateTimerUI();
+      document.getElementById('btn-pause').classList.add('hidden');
+      document.getElementById('btn-start').classList.remove('hidden');
+      document.getElementById('btn-start').textContent = '▶ Start';
+      document.getElementById('timer-wrapper').classList.remove('timer-running');
+    }
+
+    /* ─────────────────────────── HABIT CLICKER ─────────────────────────── */
+    const quotes = [
+      '"Every small step counts."',
+      '"Progress, not perfection."',
+      '"You\'re building something beautiful."',
+      '"Consistency beats intensity."',
+      '"One habit at a time."',
+      '"You showed up. That\'s everything."',
+      '"Small wins compound into big change."',
+      '"Today\'s effort is tomorrow\'s habit."',
+      '"You\'ve got this. Keep going."',
+      '"Be proud of how far you\'ve come."',
+      '"The secret is to start."',
+      '"Discipline is just love in action."',
+    ];
+
+    const icons = ['🌱', '🌿', '🌸', '🦋', '⭐', '🌟', '💫', '🌺', '✨', '🪴', '🌻', '🎯'];
+
+    let clickCount   = 0;
+    let streakCount  = 0;
+    let lastClickDay = null;
+    let iconIndex    = 0;
+    let quoteIndex   = 0;
+
+    // Restore state
+    const savedClicks = localStorage.getItem('ff-clicks');
+    const savedStreak = localStorage.getItem('ff-streak');
+    const savedDate   = localStorage.getItem('ff-date');
+    const today       = new Date().toDateString();
+
+    if (savedDate === today) {
+      clickCount = parseInt(savedClicks || '0');
+    }
+    streakCount = parseInt(savedStreak || '0');
+    lastClickDay = savedDate;
+
+    if (savedDate && savedDate !== today) {
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+      if (savedDate === yesterday.toDateString()) {
+        streakCount = streakCount; // maintain streak
+      } else {
+        streakCount = 0;
+        localStorage.setItem('ff-streak', '0');
+      }
+    }
+
+    document.getElementById('click-count').textContent = clickCount;
+    document.getElementById('streak-count').textContent = streakCount;
+
+    function handleHabitClick(e) {
+      clickCount++;
+      iconIndex  = (iconIndex  + 1) % icons.length;
+      quoteIndex = (quoteIndex + 1) % quotes.length;
+
+      // Update counts
+      document.getElementById('click-count').textContent = clickCount;
+
+      // Streak logic
+      if (lastClickDay !== today) {
+        streakCount++;
+        lastClickDay = today;
+        localStorage.setItem('ff-streak', streakCount);
+        localStorage.setItem('ff-date', today);
+        document.getElementById('streak-count').textContent = streakCount;
+      }
+      localStorage.setItem('ff-clicks', clickCount);
+
+      // Update icon with animation
+      const btn = document.getElementById('habit-btn');
+      btn.textContent = icons[iconIndex];
+      btn.style.animation = 'none';
+      void btn.offsetWidth; // reflow
+      btn.style.animation = 'wiggle 0.5s ease-in-out, spinOnce 0.6s ease-out';
+
+      // Fade quote
+      const qt = document.getElementById('quote-text');
+      qt.style.opacity = '0';
+      setTimeout(() => {
+        qt.textContent = quotes[quoteIndex];
+        qt.style.opacity = '1';
+      }, 200);
+
+      // Spawn sparkle
+      spawnSparkle(e.clientX, e.clientY);
+    }
+
+    function spawnSparkle(x, y) {
+      const particles = ['✨','⭐','💫','🌟','·','•'];
+      const count = 5;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('span');
+        el.className = 'sparkle';
+        el.textContent = particles[Math.floor(Math.random() * particles.length)];
+        const angle = (Math.random() - 0.5) * 80;
+        el.style.left = (x + (Math.random() - 0.5) * 50) + 'px';
+        el.style.top  = (y - 10) + 'px';
+        el.style.setProperty('--angle', angle + 'deg');
+        document.body.appendChild(el);
+        el.addEventListener('animationend', () => el.remove());
+      }
+    }
+
+    /* ─────────────────────────── GOALS ─────────────────────────── */
+    let goals = [];
+
+    // Restore goals
+    const savedGoals = localStorage.getItem('ff-goals-' + today);
+    if (savedGoals) {
+      goals = JSON.parse(savedGoals);
+      renderGoals();
+    }
+
+    function addGoal() {
+      const input = document.getElementById('goal-input');
+      const text  = input.value.trim();
+      if (!text) return;
+      if (goals.length >= 3) {
+        showToast('⚠️ Max 3 priorities for today!');
+        return;
+      }
+      goals.push({ text, done: false, id: Date.now() });
+      input.value = '';
+      saveGoals();
+      renderGoals();
+    }
+
+    function toggleGoal(id) {
+      const g = goals.find(g => g.id === id);
+      if (g) g.done = !g.done;
+      saveGoals();
+      renderGoals();
+      if (goals.every(g => g.done) && goals.length === 3) {
+        setTimeout(() => showToast('🎉 All priorities done! Amazing day!'), 300);
+      }
+    }
+
+    function removeGoal(id) {
+      goals = goals.filter(g => g.id !== id);
+      saveGoals();
+      renderGoals();
+    }
+
+    function saveGoals() {
+      localStorage.setItem('ff-goals-' + today, JSON.stringify(goals));
+    }
+
+    function renderGoals() {
+      const list  = document.getElementById('goal-list');
+      const empty = document.getElementById('goal-empty');
+      const label = document.getElementById('goal-count-label');
+
+      list.innerHTML = '';
+      const done = goals.filter(g => g.done).length;
+      label.textContent = `${done} / ${goals.length}`;
+
+      if (goals.length === 0) {
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      goals.forEach(g => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-3 px-4 py-3 rounded-2xl group animate-bounce-in ' + (g.done ? 'goal-done' : '');
+        li.style.background = 'var(--accent-light)';
+        li.style.border = '1px solid var(--border)';
+        li.innerHTML = `
+          <input type="checkbox" class="goal-checkbox w-4 h-4 flex-shrink-0 cursor-pointer" ${g.done ? 'checked' : ''} onchange="toggleGoal(${g.id})" />
+          <span class="flex-1 text-sm leading-relaxed">${escapeHTML(g.text)}</span>
+          <button onclick="removeGoal(${g.id})" class="opacity-0 group-hover:opacity-100 text-base muted hover:text-red-400 transition-all duration-200 flex-shrink-0" title="Remove">✕</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ─────────────────────────── TOAST ─────────────────────────── */
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = `
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+        background: var(--text); color: var(--bg);
+        padding: 10px 20px; border-radius: 99px; font-size: 13px; font-weight: 500;
+        z-index: 9999; opacity: 0; transition: all 0.3s ease;
+        white-space: nowrap; max-width: 90vw; text-align: center;
+      `;
+      document.body.appendChild(t);
+      requestAnimationFrame(() => {
+        t.style.opacity = '1';
+        t.style.transform = 'translateX(-50%) translateY(0)';
+      });
+      setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateX(-50%) translateY(10px)';
+        t.addEventListener('transitionend', () => t.remove());
+      }, 3000);
+    }
+
+    /* ─────────────────────────── KEYBOARD SHORTCUT ─────────────────────────── */
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        timerRunning ? pauseTimer() : startTimer();
+      }
+    });
+  </script>
+</body>
+</html>
